@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ObraStatus {
+  ATIVA
+  PAUSADA
+  FINALIZADA
+}
+
+enum LancamentoTipo {
+  RECEITA
+  DESPESA
+}
+
+enum LancamentoStatus {
+  ABERTO
+  PAGO
+  ATRASADO
+}
+
+model Obra {
+  id        String   @id @default(cuid())
+  nome      String
+  cliente   String?
+  endereco  String?
+  status    ObraStatus @default(ATIVA)
+  createdAt DateTime @default(now())
+
+  orcamentos OrcamentoCategoria[]
+  lancamentos Lancamento[]
+
+  @@index([status])
+  @@index([nome])
+}
+
+model Categoria {
+  id        String   @id @default(cuid())
+  nome      String   @unique
+  createdAt DateTime @default(now())
+
+  orcamentos OrcamentoCategoria[]
+  lancamentos Lancamento[]
+}
+
+model OrcamentoCategoria {
+  id            String   @id @default(cuid())
+  obraId        String
+  categoriaId   String
+  valorPrevisto Decimal  @default(0)
+
+  obra      Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([obraId, categoriaId])
+  @@index([obraId])
+  @@index([categoriaId])
+}
+
+model Lancamento {
+  id             String   @id @default(cuid())
+  obraId         String
+  categoriaId    String
+  tipo           LancamentoTipo
+  status         LancamentoStatus @default(ABERTO)
+
+  descricao      String
+  valor          Decimal
+  dataCompetencia DateTime
+  dataVencimento DateTime?
+  dataPagamento  DateTime?
+
+  createdAt      DateTime @default(now())
+
+  obra      Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+
+  @@index([obraId, dataCompetencia])
+  @@index([categoriaId, dataCompetencia])
+  @@index([tipo])
+  @@index([status])
+}
